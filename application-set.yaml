@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: spring-boot-api-appset
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: minikube  # Definiowanie środowiska developerskiego dev-global-cluster-0
+            environment: dev
+            namespace: spring-boot-api-dev  # Namespace dla dev
+          - cluster: minikube   # Definiowanie środowiska produkcyjnego prd-global-cluster-5
+            environment: prd
+            namespace: spring-boot-api-prd  # Namespace dla prod
+  template:
+    metadata:
+      name: spring-boot-api-{{ environment }} # Dynamiczna nazwa aplikacji na podstawie środowiska
+    spec:
+      project: spring-boot-api
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ namespace }}"  # Dynamiczny namespace dla danego środowiska
+      source:
+        repoURL: "https://github.com/antmans/spring-boot-api.git"
+        targetRevision: main
+        path: spring-boot-api-helm
+        helm:
+          parameters:
+            - name: environment
+              value: "{{ environment }}"  # Dynamiczna zmienna środowiskowa (dev lub prod)
+      syncPolicy:
+        automated:
+          prune: true  # Usuwanie zasobów, które nie istnieją w repozytorium
+          selfHeal: true  # Samonaprawianie zmian w zasobach
+        syncOptions:
+        - CreateNamespace=true # Tworzenie namespace, jeśli nie istnieje

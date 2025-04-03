@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: spring-boot-api
+  namespace: argocd
+spec:
+  description: Spring Boot API Project
+  destinations:
+    - namespace: '*'
+      server: '*'
+  sourceRepos:
+    - 'https://github.com/antmans/spring-boot-api.git'
+  namespaceResourceWhitelist: # dla uproszczenia dodane wszystkie uprawnienia dla ArgoCD
+  - group: "*"
+    kind: "*"
+  clusterResourceWhitelist: # dla uproszczenia dodane wszystkie uprawnienia dla ArgoCD
+  - group: "*"
+    kind: "*"

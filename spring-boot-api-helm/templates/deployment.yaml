@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  replicas: 
+    {{- if eq .Values.environment "dev" }}
+      {{ .Values.dev.replicas }}
+    {{- else if eq .Values.environment "prd" }}
+      {{ .Values.prd.replicas }}
+    {{- else }}
+      1  # Domyślnie 1 replika, jeśli środowisko nie zostało określone
+    {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: {{ .Values.appName }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http-8080
+              containerPort: 8080
+            - name: http-8081
+              containerPort: 8081
+            - name: http-8082
+              containerPort: 8082
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SPRING_PROFILES_ACTIVE
+              value: "{{ .Values.environment }}"
+          command:
+            - "java"
+            - "-jar"
+            - "/app.jar"
+            - "--spring.profiles.active={{ .Values.environment }}"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "wget http://localhost:8080/service/shutdown || true"]
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ .Chart.Name }}-config
+      resources:
+        requests:
+          memory: {{ .Values.resources.requests.memory }}
+          cpu: {{ .Values.resources.requests.cpu }}
+        limits:
+          memory: {{ .Values.resources.limits.memory }}
+          cpu: {{ .Values.resources.limits.cpu }}

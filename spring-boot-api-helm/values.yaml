@@ -1,0 +1,33 @@
+appName: "spring-boot-api"
+image:
+  repository: busybox
+  tag: "stable"
+  pullPolicy: IfNotPresent
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "250m"
+  limits:
+    memory: "128Mi"
+    cpu: "500m"
+ports:
+  - 8080
+  - 8081
+  - 8082
+configMap:
+  content: |
+    {
+      "sampleKey": "sampleValue"
+    }
+secret:
+  apiKey: ""
+
+dev:
+  replicas: 3
+  namespace: spring-boot-api-dev
+  ingressHost: "dev.example.com"
+
+prd:
+  replicas: 5
+  namespace: spring-boot-api-prod
+  ingressHost: "prd.example.com"
